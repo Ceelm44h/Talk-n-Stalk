@@ -6,16 +6,21 @@ from stoppable_thread import StoppableThread
 import net_utils
 
 SERVER = socket.gethostbyname(socket.gethostname())
-PORT = 4202
+PORT = 4205
 
 class Client:
+    def __del__(self):
+        net_utils.send(self.server, net_utils.DISCONNECT_MSG)
+        self.close_connection()
+
     def receiver(self, target, nick):
         """Receive all incoming messages from server while thread is active"""
         while not threading.current_thread().stopped():
             msg = net_utils.receive(target)
 
             if msg == net_utils.DISCONNECT_MSG:
-                self.close()
+                print(f'User {self.interlocutor_nick} disconnected.')
+                self.close_connection()
                 break
             elif msg != None:
                 print(nick + ": " + msg)
@@ -24,42 +29,54 @@ class Client:
         """Send all given messages while thread is active"""
         while not threading.current_thread().stopped():
             msg = input()
-            if msg == net_utils.DISCONNECT_MSG:
-                #self.close()
-                #net_utils.send(server, net_utils.DISCONNECT_MSG)
-                break
+            
             if msg:
                 net_utils.send(server, msg)
 
-    def close(self):
-        self.talkerThr.stop()
-        self.stalkerThr.stop()
-        print("Disconnected.")
+            if msg == net_utils.DISCONNECT_MSG:
+                self.close_connection()
+
+    def close_connection(self):
+        """"Stop active threads and close the connection."""
+        if self.is_open:
+            self.is_open = False
+            self.talker_thr.stop()
+            self.stalker_thr.stop()
+
+            print('Disconnected.')
+        
+    def open_connection(self, server):
+        """"""
+        if not self.is_open:
+            self.is_open = True
+            self.talker_thr = StoppableThread(target=self.talker, args=(server, ))
+            self.stalker_thr = StoppableThread(target=self.receiver, args=(server, self.interlocutor_nick))
+
+            self.talker_thr.start()
+            self.stalker_thr.start()
 
     def start(self, nick):
         self.nick = nick
+        self.is_open = False
+
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server = server
         server.connect((SERVER, PORT))
 
         net_utils.send(server, nick)  # Send own nickname.
-        interlocutorNick = net_utils.receive(server)  # Get interlocutor's nickname.
-
-        self.talkerThr = StoppableThread(target=self.talker, args=(server, ))
-        self.stalkerThr = StoppableThread(target=self.receiver, args=(server, interlocutorNick))
-
-        self.talkerThr.start()
-        self.stalkerThr.start()
+        self.interlocutor_nick = net_utils.receive(server)  # Get interlocutor's nickname.
+        
+        self.open_connection(server)
 
         try:
-            while True:
+            while self.is_open:
                 pass
         except KeyboardInterrupt:
             net_utils.send(server, net_utils.DISCONNECT_MSG)
-            self.close()
 
 def main(argv):
     client = Client()
     client.start(argv[1])
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main(sys.argv)

@@ -1,23 +1,23 @@
 import socket
 
 HEADER = 64
-FORMAT = "utf-8"
-DISCONNECT_MSG = ":disconnect:"
+FORMAT = 'utf-8'
+DISCONNECT_MSG = ':disconnect:'
 
 def send(target, msg):
     """Send a message with padding to the target"""
     msg = msg.encode(FORMAT)
-    msgLength = len(msg)
-    msgLength = str(msgLength).encode(FORMAT)
-    msgLength += b' ' * (HEADER - len(msgLength))
+    msg_length = len(msg)
+    msg_length = str(msg_length).encode(FORMAT)
+    msg_length += b' ' * (HEADER - len(msg_length))
 
-    target.send(msgLength)
+    target.send(msg_length)
     target.send(msg)
 
 def receive(target):
-    msgLength = target.recv(HEADER).decode(FORMAT)
+    msg_length = target.recv(HEADER).decode(FORMAT)
         
-    if msgLength:
-        msgLength = int(msgLength)
-        msg = target.recv(msgLength).decode(FORMAT)
+    if msg_length:
+        msg_length = int(msg_length)
+        msg = target.recv(msg_length).decode(FORMAT)
         return msg
