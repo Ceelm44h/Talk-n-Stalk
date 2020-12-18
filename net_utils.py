@@ -5,7 +5,7 @@ FORMAT = 'utf-8'
 DISCONNECT_MSG = ':disconnect:'
 
 def send(target, msg):
-    """Send a message with padding to the target"""
+    """Send a message with padding to the target."""
     msg = msg.encode(FORMAT)
     msg_length = len(msg)
     msg_length = str(msg_length).encode(FORMAT)
@@ -15,6 +15,7 @@ def send(target, msg):
     target.send(msg)
 
 def receive(target):
+    """Receive a text message."""
     msg_length = target.recv(HEADER).decode(FORMAT)
         
     if msg_length:

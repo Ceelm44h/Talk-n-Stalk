@@ -16,13 +16,17 @@ class Client:
     def receiver(self, target, nick):
         """Receive all incoming messages from server while thread is active"""
         while not threading.current_thread().stopped():
-            msg = net_utils.receive(target)
+            try:
+                msg = net_utils.receive(target)
+            except socket.error:
+                msg = None
+                self.close_connection()
 
             if msg == net_utils.DISCONNECT_MSG:
                 print(f'User {self.interlocutor_nick} disconnected.')
                 self.close_connection()
                 break
-            elif msg != None:
+            elif msg:
                 print(nick + ": " + msg)
 
     def talker(self, server):
@@ -46,7 +50,7 @@ class Client:
             print('Disconnected.')
         
     def open_connection(self, server):
-        """"""
+        """Start threads responsible for communication with server/"""
         if not self.is_open:
             self.is_open = True
             self.talker_thr = StoppableThread(target=self.talker, args=(server, ))
@@ -55,15 +59,19 @@ class Client:
             self.talker_thr.start()
             self.stalker_thr.start()
 
-    def start(self, nick):
-        self.nick = nick
+    def start(self, args):
+        self.nick = args[0]
+        self.password = args[1]
         self.is_open = False
 
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server = server
         server.connect((SERVER, PORT))
 
-        net_utils.send(server, nick)  # Send own nickname.
+        net_utils.send(server, self.nick)
+        net_utils.send(server, self.password)
+        #net_utils.send(server, self.password)
+        net_utils.send(server, self.nick)  # Send own nickname.
         self.interlocutor_nick = net_utils.receive(server)  # Get interlocutor's nickname.
         
         self.open_connection(server)
@@ -73,10 +81,11 @@ class Client:
                 pass
         except KeyboardInterrupt:
             net_utils.send(server, net_utils.DISCONNECT_MSG)
+            self.close_connection()
 
 def main(argv):
     client = Client()
-    client.start(argv[1])
+    client.start(argv[1:])
 
 if __name__ == '__main__':
     main(sys.argv)

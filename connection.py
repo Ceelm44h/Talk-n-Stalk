@@ -15,6 +15,7 @@ class Connection():
 
         self.first_to_second = StoppableThread(target=self.repeater, args=(conn_one, conn_two))
         self.second_to_first = StoppableThread(target=self.repeater, args=(conn_two, conn_one))
+        self.is_open = False
 
     def run(self):
         """Start the connection."""
@@ -30,7 +31,7 @@ class Connection():
             except ConnectionResetError:
                 msg = None
                 self.close_connection(sender)
-                
+
             if msg == net_utils.DISCONNECT_MSG:
                 self.close_connection(sender)
             if msg:
