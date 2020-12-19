@@ -4,6 +4,7 @@ import sys
 import threading
 
 import net_utils
+import sqlbase
 from stoppable_thread import StoppableThread
 from connection import Connection
 
@@ -12,22 +13,34 @@ PORT = 4205
 
 class Server():
     def __init__(self):
-        self.base = {'chudy' : 'harnas', 'gruby' : 'jasiu12'}  # Obviously insecure, just for testing purposes.
+        self.sql = sqlbase.SQLBase()
 
     def __del__(self):
         for conn in self.activeConnections:
             conn.close_connection(None)
 
-    def verify(self, nick, password):
-        return self.base[nick] == password
+    def verify(self, conn, login, password):
+        """Check if password is correct for given login."""
+        id = self.sql.getUser(login, password)
+
+        if id is None:
+            print('Authorization failed.')
+            net_utils.send(conn, 'Authorization failed.')
+            return False
+        
+        net_utils.send(conn, 'Authorization succeeded.')
+        print(f'User {login} connected.')
+        return True
 
     def establish_connection(self, conn, connTwo):
+        """Make connection between two clients."""
         print('Connection established.')
         connection = Connection(conn, connTwo)
         connection.run()
         
         self.activeConnections.append(connection)
-            
+    
+                
     def run(self, args):
         """Run server on ip = SERVER and port = PORT"""
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,12 +58,9 @@ class Server():
                     sentNick = net_utils.receive(conn_second)
                     sentPass = net_utils.receive(conn_second)
    
-                    if not self.verify(sentNick, sentPass):
-                        print('Authorization failed.')
-                        net_utils.send(conn_second, 'Authorization failed.')
+                    if not self.verify(conn_second, sentNick, sentPass):
                         continue
 
-                    print(f'User {sentNick} connected.')
                     client_nr += 1
                     self.establish_connection(conn_first, conn_second)
                 else:
@@ -59,11 +69,9 @@ class Server():
                     sentNick = net_utils.receive(conn_first)
                     sentPass = net_utils.receive(conn_first)
    
-                    if not self.verify(sentNick, sentPass):
-                        print('Authorization failed.')
-                        net_utils.send(conn_first, 'Authorization failed.')
+                    if not self.verify(conn_first, sentNick, sentPass):
                         continue
-                    print(f'User {sentNick} connected.')
+
                     client_nr += 1
 
                 print(f'{client_nr}. client connected')

@@ -70,10 +70,13 @@ class Client:
 
         net_utils.send(server, self.nick)
         net_utils.send(server, self.password)
-        #net_utils.send(server, self.password)
         net_utils.send(server, self.nick)  # Send own nickname.
-        self.interlocutor_nick = net_utils.receive(server)  # Get interlocutor's nickname.
+        answer = net_utils.receive(server)  # Get server's answer.
         
+        if answer != 'Authorization succeeded.':
+            exit("Invalid login or password.")
+        
+        self.interlocutor_nick = net_utils.receive(server)  # Get interlocutor's nickname. 
         self.open_connection(server)
 
         try:
