@@ -6,16 +6,47 @@ class SQLBase():
         self.con = sqlite3.connect('users.db')
         self.con.row_factory = sqlite3.Row
         self.cur = self.con.cursor()
+        self.createBase()
     
     def __del__(self):
         self.con.commit()
     
     def createBase(self):
+        self.cur.execute('DROP TABLE users')
         self.cur.execute("""
                 CREATE TABLE IF NOT EXISTS users(
-                    id INTEGER PRIMARY KEY ASC,
-                    login varchar(250) NOT NULL UNIQUE,
+                    userID INT IDENTITY(1,1) PRIMARY KEY,
+	                login NVARCHAR(15) NOT NULL UNIQUE,
                     password varchar(250) NOT NULL
+                )
+                """)
+        self.cur.execute("""
+                CREATE TABLE IF NOT EXISTS passwords
+                (
+                    userID INT PRIMARY KEY,
+                    hash BINARY(64) NOT NULL,
+                    salt UNIQUEIDENTIFIER NOT NULL,
+                    FOREIGN KEY(userID) REFERENCES users(userID)
+                )
+                """)
+        self.cur.execute("""
+                CREATE TABLE IF NOT EXISTS relationshipStatus
+                (
+                    statusID INT IDENTITY(1,1) PRIMARY KEY,
+                    statusDescription NVARCHAR(20) NOT NULL
+                )
+                """)
+        self.cur.execute(
+            """
+                CREATE TABLE IF NOT EXISTS relationships
+                (
+                    firstUserID INT NOT NULL,
+                    secondUserID INT NOT NULL,
+                    statusID INT NOT NULL,
+                    PRIMARY KEY(firstUserID, secondUserID),
+                    FOREIGN KEY(firstUserID) REFERENCES users(userID),
+                    FOREIGN KEY(secondUserID) REFERENCES users(userID),
+                    FOREIGN KEY(statusID) REFERENCES relationshipStatus(statusID)
                 )
                 """)
 
