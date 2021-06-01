@@ -13,6 +13,7 @@ def send(target, msg):
 
     target.send(msg_length)
     target.send(msg)
+    return True
 
 def receive(target):
     """Receive a text message."""

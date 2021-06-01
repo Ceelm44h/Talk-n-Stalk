@@ -6,12 +6,12 @@ class SQLBase():
         self.con = sqlite3.connect('users.db')
         self.con.row_factory = sqlite3.Row
         self.cur = self.con.cursor()
-        self.createBase()
+        self.create_base()
     
     def __del__(self):
         self.con.commit()
     
-    def createBase(self):
+    def create_base(self):
         self.cur.execute('DROP TABLE users')
         self.cur.execute("""
                 CREATE TABLE IF NOT EXISTS users(
@@ -36,8 +36,7 @@ class SQLBase():
                     statusDescription NVARCHAR(20) NOT NULL
                 )
                 """)
-        self.cur.execute(
-            """
+        self.cur.execute("""
                 CREATE TABLE IF NOT EXISTS relationships
                 (
                     firstUserID INT NOT NULL,
@@ -50,16 +49,19 @@ class SQLBase():
                 )
                 """)
 
-    def getUser(self, login, password):
-        values = login, hashlib.sha3_256(password.encode()).hexdigest()
-        self.cur.execute('SELECT id FROM users WHERE login=? AND password=?', values)
-        id = self.cur.fetchone()
-        if not id:
-            return None
+        self.add_user("chudy", "harnas")
+        self.add_user("buldog", "harnas")
+        self.add_user("user", "user")
+        self.add_user("admin", "admin")
 
-        return id[0]
+    def get_user(self, login, password):
+        values = login, hashlib.sha3_256(password.encode()).hexdigest()
+        self.cur.execute('SELECT userID FROM users WHERE login=? AND password=?', values)
+        res = self.cur.fetchone()
+
+        return res != None
     
-    def addUser(self, login, password):
+    def add_user(self, login, password):
         try:
             values = login, hashlib.sha3_256(password.encode()).hexdigest()
             self.cur.execute('INSERT INTO users(login, password) VALUES(?, ?)', values)
@@ -67,6 +69,8 @@ class SQLBase():
         except sqlite3.IntegrityError:
             return False
     
-    def removeUser(self, login, password):
+    def remove_user(self, login, password):
         values = login, password
-        self.cur.execute('DELETE FROM users WHERE login=? AND password=?', values)
+        res = self.cur.execute('DELETE FROM users WHERE login=? AND password=?', values)
+        print(res)
+        return res == 'ok'

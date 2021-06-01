@@ -15,7 +15,7 @@ class Client:
 
     def receiver(self, target, nick):
         """Receive all incoming messages from server while thread is active"""
-        while not threading.current_thread().stopped():
+        while not threading.current_thread().stopped() and self.is_open:
             try:
                 msg = net_utils.receive(target)
             except socket.error:
@@ -27,11 +27,11 @@ class Client:
                 self.close_connection()
                 break
             elif msg:
-                print(nick + ": " + msg)
+                print(nick + ': ' + msg)
 
     def talker(self, server):
         """Send all given messages while thread is active"""
-        while not threading.current_thread().stopped():
+        while not threading.current_thread().stopped() and self.is_open:
             msg = input()
             
             if msg:
@@ -68,7 +68,7 @@ class Client:
         self.server = server
         server.connect((SERVER, PORT))
 
-        net_utils.send(server, self.nick)
+        net_utils.send(server, self.nick)  #  Send login and password to authorize.
         net_utils.send(server, self.password)
         net_utils.send(server, self.nick)  # Send own nickname.
         answer = net_utils.receive(server)  # Get server's answer.
@@ -85,6 +85,11 @@ class Client:
         except KeyboardInterrupt:
             net_utils.send(server, net_utils.DISCONNECT_MSG)
             self.close_connection()
+            exit()
+        finally:
+            net_utils.send(server, net_utils.DISCONNECT_MSG)
+            self.close_connection()
+            exit()
 
 def main(argv):
     client = Client()

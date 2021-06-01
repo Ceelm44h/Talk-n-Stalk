@@ -19,17 +19,25 @@ class Server():
         for conn in self.activeConnections:
             conn.close_connection(None)
 
-    def verify(self, conn, login, password):
-        """Check if password is correct for given login."""
-        id = self.sql.getUser(login, password)
+    def checkCredentials(self, login, password):
+        """Check if given login and password exist in base."""
 
-        if id is None:
-            print('Authorization failed.')
-            net_utils.send(conn, 'Authorization failed.')
+        id = self.sql.get_user(login, password)
+        return id is not None
+
+    def verify(self, conn, login, password):
+        """Check if password is correct for given login and give output."""
+
+        FAIL_MESSAGE = f'Authorization of user {login} failed.'
+        SUCCESS_MESSAGE = f'User {login} connected.'
+        
+        if self.checkCredentials(login, password):
+            print(FAIL_MESSAGE)
+            net_utils.send(conn, FAIL_MESSAGE)
             return False
         
-        net_utils.send(conn, 'Authorization succeeded.')
-        print(f'User {login} connected.')
+        print(SUCCESS_MESSAGE)
+        net_utils.send(conn, SUCCESS_MESSAGE)
         return True
 
     def establish_connection(self, conn, connTwo):
